@@ -1,49 +1,49 @@
-# DocuChain - Nền tảng quản lý tài liệu thông minh
+# DocuChain - Intelligent Document Management Platform
 
-DocuChain là một nền tảng quản lý tài liệu thông minh được phát triển cho Foxit Software Challenge, kết hợp sức mạnh của Foxit PDF SDK với trí tuệ nhân tạo để tự động hóa quy trình tạo, xử lý và quản lý tài liệu.
+DocuChain is an intelligent document management platform developed for the Foxit Software Challenge, combining the power of Foxit PDF SDK with artificial intelligence to automate the process of creating, processing, and managing documents.
 
-## Tính năng chính (MVP)
+## Key Features (MVP)
 
-- Tạo tài liệu từ mẫu với dữ liệu động
-- Chuyển đổi Word, Excel, PowerPoint sang PDF
-- Tối ưu hóa PDF (giảm kích thước)
-- Tách và ghép PDF
-- Trích xuất văn bản từ PDF
-- Chữ ký điện tử đơn giản
-- Bảo vệ tài liệu bằng mật khẩu
-- Giao diện web trực quan để tải lên, tải xuống, xem trước PDF và quản lý danh sách tài liệu
+- Create documents from templates with dynamic data
+- Convert Word, Excel, PowerPoint to PDF
+- Optimize PDF (reduce file size)
+- Split and merge PDFs
+- Extract text from PDF
+- Simple electronic signatures
+- Password protection for documents
+- Intuitive web interface for uploading, downloading, previewing PDFs and managing document lists
 
-## Công nghệ sử dụng
+## Technologies Used
 
 - **Backend**: Node.js/Express, Foxit PDF SDK, OpenAI API
 - **Frontend**: React.js, Material UI/Tailwind CSS, PDF.js
 - **Database**: MongoDB
 - **DevOps**: Docker, GitHub Actions, Heroku/Vercel
 
-## Cài đặt và chạy dự án
+## Installation and Setup
 
-### Yêu cầu hệ thống
+### System Requirements
 - Node.js (v14+)
 - MongoDB
 - Foxit PDF SDK API key
 
-### Cài đặt
+### Installation
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/docuchain.git
+git clone https://github.com/hieplt7985/docu_chain.git
 cd docuchain
 
-# Cài đặt dependencies cho backend
+# Install backend dependencies
 cd backend
 npm install
 
-# Cài đặt dependencies cho frontend
+# Install frontend dependencies
 cd ../frontend
 npm install
 ```
 
-### Cấu hình
-Tạo file `.env` trong thư mục backend với nội dung:
+### Configuration
+Create a `.env` file in the backend directory with the following content:
 ```
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/docuchain
@@ -51,19 +51,21 @@ FOXIT_API_KEY=your_foxit_api_key
 OPENAI_API_KEY=your_openai_api_key
 ```
 
-### Chạy ứng dụng
+### Running the Application
 ```bash
-# Chạy backend
+# Run backend
 cd backend
 npm run dev
 
-# Chạy frontend (trong terminal khác)
+# Run frontend (in a separate terminal)
 cd frontend
 npm start
 ```
 
-## Đóng góp
-Mọi đóng góp đều được chào đón. Vui lòng tạo issue hoặc pull request để đóng góp.
+## Contributing
 
-## Giấy phép
+All contributions are welcome. Please create an issue or pull request to contribute.
+
+## License
+
 [MIT](LICENSE)
