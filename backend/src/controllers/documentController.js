@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 
 const Document = require('../models/Document');
+const foxitService = require('../services/foxitService');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs').promises;
 
 // @desc    Get all documents
 // @route   GET /api/documents
@@ -201,11 +205,34 @@ exports.mergeDocuments = async (req, res, next) => {
 // @access  Private
 exports.splitDocument = async (req, res, next) => {
   try {
-    // Xử lý tách tài liệu sẽ được thêm sau khi tích hợp Foxit SDK
+    const { documentId, pages } = req.body;
+    
+    if (!documentId || !pages || !Array.isArray(pages)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide document ID and pages array'
+      });
+    }
+
+    const document = await Document.findById(documentId);
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found'
+      });
+    }
+
+    // Read file from disk
+    const filePath = path.join(__dirname, '../../uploads', document.fileUrl);
+    const fileBuffer = await fs.readFile(filePath);
+    
+    // Split PDF using Foxit API
+    const result = await foxitService.splitPDF(fileBuffer, pages);
+    
     res.status(200).json({
       success: true,
-      message: 'Document split feature will be implemented with Foxit SDK',
-      data: {}
+      message: 'Document split successfully',
+      data: result
     });
   } catch (err) {
     res.status(500).json({
@@ -221,11 +248,34 @@ exports.splitDocument = async (req, res, next) => {
 // @access  Private
 exports.optimizeDocument = async (req, res, next) => {
   try {
-    // Xử lý tối ưu hóa tài liệu sẽ được thêm sau khi tích hợp Foxit SDK
+    const { documentId } = req.body;
+    
+    if (!documentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide document ID'
+      });
+    }
+
+    const document = await Document.findById(documentId);
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found'
+      });
+    }
+
+    // Read file from disk
+    const filePath = path.join(__dirname, '../../uploads', document.fileUrl);
+    const fileBuffer = await fs.readFile(filePath);
+    
+    // Optimize PDF using Foxit API
+    const result = await foxitService.optimizePDF(fileBuffer);
+    
     res.status(200).json({
       success: true,
-      message: 'Document optimization feature will be implemented with Foxit SDK',
-      data: {}
+      message: 'Document optimized successfully',
+      data: result
     });
   } catch (err) {
     res.status(500).json({
@@ -241,11 +291,34 @@ exports.optimizeDocument = async (req, res, next) => {
 // @access  Private
 exports.extractText = async (req, res, next) => {
   try {
-    // Xử lý trích xuất văn bản sẽ được thêm sau khi tích hợp Foxit SDK
+    const { documentId } = req.body;
+    
+    if (!documentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide document ID'
+      });
+    }
+
+    const document = await Document.findById(documentId);
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found'
+      });
+    }
+
+    // Read file from disk
+    const filePath = path.join(__dirname, '../../uploads', document.fileUrl);
+    const fileBuffer = await fs.readFile(filePath);
+    
+    // Extract text using Foxit API
+    const result = await foxitService.extractText(fileBuffer);
+    
     res.status(200).json({
       success: true,
-      message: 'Text extraction feature will be implemented with Foxit SDK',
-      data: {}
+      message: 'Text extracted successfully',
+      data: result
     });
   } catch (err) {
     res.status(500).json({
@@ -281,11 +354,39 @@ exports.signDocument = async (req, res, next) => {
 // @access  Private
 exports.protectDocument = async (req, res, next) => {
   try {
-    // Xử lý bảo vệ tài liệu sẽ được thêm sau khi tích hợp Foxit SDK
+    const { documentId, password } = req.body;
+    
+    if (!documentId || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide document ID and password'
+      });
+    }
+
+    const document = await Document.findById(documentId);
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found'
+      });
+    }
+
+    // Read file from disk
+    const filePath = path.join(__dirname, '../../uploads', document.fileUrl);
+    const fileBuffer = await fs.readFile(filePath);
+    
+    // Protect PDF using Foxit API
+    const result = await foxitService.protectPDF(fileBuffer, password);
+    
+    // Update document in database
+    document.isProtected = true;
+    document.password = password;
+    await document.save();
+    
     res.status(200).json({
       success: true,
-      message: 'Document protection feature will be implemented with Foxit SDK',
-      data: {}
+      message: 'Document protected successfully',
+      data: result
     });
   } catch (err) {
     res.status(500).json({
