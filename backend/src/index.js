@@ -16,11 +16,32 @@ const userRoutes = require('./routes/users');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Render sits behind a proxy
+app.set('trust proxy', 1);
+
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan('dev'));
+// CORS: allowlist via env (comma-separated)
+const allowedOrigins = (process.env.CORS_ORIGINS || '*')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
+
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// Conditionally enable request logging
+if (process.env.REQUEST_LOGGING !== 'off') {
+  app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+}
 
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -35,14 +56,16 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
-// Serve frontend build (single-port deploy)
-const frontendBuildPath = path.join(__dirname, '../../frontend/build');
-app.use(express.static(frontendBuildPath));
-app.get('*', (req, res) => {
-  // Do not hijack API routes
-  if (req.path.startsWith('/api')) return res.status(404).json({ message: 'Not Found' });
-  res.sendFile(path.join(frontendBuildPath, 'index.html'));
-});
+// Serve frontend build (single-port deploy) - optional via env
+if (process.env.SERVE_FRONTEND === 'true') {
+  const frontendBuildPath = path.join(__dirname, '../../frontend/build');
+  app.use(express.static(frontendBuildPath));
+  app.get('*', (req, res) => {
+    // Do not hijack API routes
+    if (req.path.startsWith('/api')) return res.status(404).json({ message: 'Not Found' });
+    res.sendFile(path.join(frontendBuildPath, 'index.html'));
+  });
+}
 
 // Foxit health (sanity)
 app.get('/api/integrations/foxit/health', async (req, res) => {

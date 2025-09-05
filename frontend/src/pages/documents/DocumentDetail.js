@@ -90,7 +90,8 @@ const DocumentDetail = () => {
       setOperationResult({
         success: true,
         message: response.data.message,
-        data: dataRes
+        data: dataRes,
+        note: response.data?.note || (dataRes && dataRes.note)
       });
     } catch (err) {
       setOperationResult({
@@ -200,33 +201,33 @@ const DocumentDetail = () => {
             <button
               onClick={() => handleOperation('optimize')}
               disabled={operationLoading}
-              className="btn btn-primary"
+              className={`btn btn-primary ${operationLoading ? 'btn-disabled loading' : ''}`}
             >
-              Optimize PDF
+              {operationLoading && lastOperation === 'optimize' ? 'Optimizing...' : 'Optimize PDF'}
             </button>
 
             <button
               onClick={() => handleOperation('extract-text')}
               disabled={operationLoading}
-              className="btn btn-success"
+              className={`btn btn-success ${operationLoading ? 'btn-disabled loading' : ''}`}
             >
-              Extract Text
+              {operationLoading && lastOperation === 'extract-text' ? 'Extracting...' : 'Extract Text'}
             </button>
 
             <button
               onClick={handleProtect}
               disabled={operationLoading || document.isProtected}
-              className="btn btn-warning"
+              className={`btn btn-warning ${operationLoading ? 'btn-disabled loading' : ''}`}
             >
-              Protect PDF
+              {operationLoading && lastOperation === 'protect' ? 'Protecting...' : 'Protect PDF'}
             </button>
 
             <button
               onClick={handleSplit}
               disabled={operationLoading}
-              className="btn btn-secondary"
+              className={`btn btn-secondary ${operationLoading ? 'btn-disabled loading' : ''}`}
             >
-              Split PDF
+              {operationLoading && lastOperation === 'split' ? 'Splitting...' : 'Split PDF'}
             </button>
           </div>
         </div>
@@ -235,16 +236,67 @@ const DocumentDetail = () => {
         {operationResult && (
           <div className="toast toast-end z-10">
             <div className={`${operationResult.success ? 'alert alert-success' : 'alert alert-error'}`}>
-              <span>{operationResult.message}</span>
+              <div className="flex items-center gap-2">
+                <span>{operationResult.message}</span>
+                {(operationResult.note === 'local-fallback' || operationResult?.data?.note === 'local-fallback') && (
+                  <span className="badge badge-sm badge-ghost">local</span>
+                )}
+              </div>
             </div>
           </div>
         )}
-          {lastOperation === 'extract-text' && extractedText && (
-            <div className="mt-4">
-              <h4 className="font-semibold text-md mb-2">Extracted Text</h4>
-              <pre className="whitespace-pre-wrap text-sm bg-base-200 p-3 rounded max-h-64 overflow-auto">{extractedText}</pre>
+
+        {/* Result Details */}
+        {lastOperation === 'extract-text' && extractedText && (
+          <div className="mt-4">
+            <h4 className="font-semibold text-md mb-2">Extracted Text</h4>
+            <pre className="whitespace-pre-wrap text-sm bg-base-200 p-3 rounded max-h-64 overflow-auto">{extractedText}</pre>
+          </div>
+        )}
+
+        {lastOperation === 'optimize' && operationResult?.data && (
+          <div className="mt-4">
+            <h4 className="font-semibold text-md mb-2">Optimize Result</h4>
+            <div className="text-sm space-y-1">
+              {typeof operationResult.data.beforeSize === 'number' && typeof operationResult.data.afterSize === 'number' && (
+                <div>
+                  <span className="font-medium">Size:</span> {(operationResult.data.beforeSize/1024/1024).toFixed(2)} MB → {(operationResult.data.afterSize/1024/1024).toFixed(2)} MB
+                </div>
+              )}
+              {operationResult.data.url && (
+                <div>
+                  <a className="link link-primary" href={`${API_BASE_URL.replace(/\/(api)?$/, '')}${operationResult.data.url}`} target="_blank" rel="noreferrer">Download optimized file</a>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        )}
+
+        {lastOperation === 'split' && Array.isArray(operationResult?.data?.files) && (
+          <div className="mt-4">
+            <h4 className="font-semibold text-md mb-2">Split Result</h4>
+            <ul className="list-disc ml-6 text-sm space-y-1">
+              {operationResult.data.files.map((f, idx) => (
+                <li key={idx}>
+                  Page {f.page}: {f.url ? (
+                    <a className="link link-primary" href={`${API_BASE_URL.replace(/\/(api)?$/, '')}${f.url}`} target="_blank" rel="noreferrer">Download</a>
+                  ) : 'generated'}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {lastOperation === 'protect' && operationResult?.data && (
+          <div className="mt-4">
+            <h4 className="font-semibold text-md mb-2">Protect Result</h4>
+            {operationResult.data.url ? (
+              <a className="link link-primary text-sm" href={`${API_BASE_URL.replace(/\/(api)?$/, '')}${operationResult.data.url}`} target="_blank" rel="noreferrer">Download protected copy</a>
+            ) : (
+              <div className="text-sm">Protected successfully.</div>
+            )}
+          </div>
+        )}
 
         {/* File Preview */}
         <div className="mt-8">

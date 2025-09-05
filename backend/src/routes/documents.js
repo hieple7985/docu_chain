@@ -134,29 +134,32 @@ router.post('/optimize', protect, documentController.optimizeDocument);
 router.post('/extract-text', protect, documentController.extractText);
 
 // TEMP: Direct upload endpoints for quick Foxit smoke tests (no DB required)
-// POST /api/documents/optimize-upload - multipart form-data with field 'file'
-router.post('/optimize-upload', uploadDisk.single('file'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ success: false, message: 'Missing file' });
-    const buffer = await fs.promises.readFile(req.file.path);
-    const result = await foxitService.optimizePDF(buffer);
-    res.status(200).json({ success: true, data: result });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
+// Guarded by env: set ENABLE_DIRECT_TEST_UPLOADS=true to enable
+if (process.env.ENABLE_DIRECT_TEST_UPLOADS === 'true') {
+  // POST /api/documents/optimize-upload - multipart form-data with field 'file'
+  router.post('/optimize-upload', uploadDisk.single('file'), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ success: false, message: 'Missing file' });
+      const buffer = await fs.promises.readFile(req.file.path);
+      const result = await foxitService.optimizePDF(buffer);
+      res.status(200).json({ success: true, data: result });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
 
-// POST /api/documents/extract-upload - multipart form-data with field 'file'
-router.post('/extract-upload', uploadDisk.single('file'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ success: false, message: 'Missing file' });
-    const buffer = await fs.promises.readFile(req.file.path);
-    const result = await foxitService.extractText(buffer);
-    res.status(200).json({ success: true, data: result });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
+  // POST /api/documents/extract-upload - multipart form-data with field 'file'
+  router.post('/extract-upload', uploadDisk.single('file'), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ success: false, message: 'Missing file' });
+      const buffer = await fs.promises.readFile(req.file.path);
+      const result = await foxitService.extractText(buffer);
+      res.status(200).json({ success: true, data: result });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+}
 
 // POST /api/documents/sign - Sign document (placeholder)
 router.post('/sign', protect, documentController.signDocument);
