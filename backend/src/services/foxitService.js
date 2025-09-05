@@ -3,12 +3,63 @@ const FormData = require('form-data');
 
 class FoxitService {
   constructor() {
-    this.docGenBaseUrl = 'https://na1.fusion.foxit.com';
-    this.pdfBaseUrl = 'https://na1.fusion.foxit.com';
+    const base = process.env.FOXIT_BASE_URL || 'https://na1.fusion.foxit.com';
+    this.baseUrl = base;
+    this.docGenBaseUrl = base;
+    this.pdfBaseUrl = process.env.FOXIT_PDF_BASE_URL || 'https://app.developer-api.foxit.com';
+    this.pdfApiBase = process.env.FOXIT_PDF_API_BASE || `${this.pdfBaseUrl}/pdf-services/api`;
+    this.oauthTokenUrl = process.env.FOXIT_OAUTH_TOKEN_URL || `${base}/oauth2/token`;
     this.docGenId = process.env.FOXIT_DOCGEN_ID;
     this.docGenSecret = process.env.FOXIT_DOCGEN_SECRET;
     this.pdfId = process.env.FOXIT_PDF_ID;
     this.pdfSecret = process.env.FOXIT_PDF_SECRET;
+    this.docGenScope = process.env.FOXIT_DOCGEN_SCOPE || '';
+    this.pdfScope = process.env.FOXIT_PDF_SCOPE || '';
+    this._tokens = {
+      docgen: { token: null, expiresAt: 0 },
+      pdf: { token: null, expiresAt: 0 },
+    };
+  }
+
+  async _getToken(kind) {
+    const now = Math.floor(Date.now() / 1000);
+    const cache = this._tokens[kind];
+    if (cache && cache.token && cache.expiresAt - 30 > now) return cache.token;
+
+    let clientId, clientSecret, scope;
+    if (kind === 'docgen') {
+      clientId = this.docGenId; clientSecret = this.docGenSecret; scope = this.docGenScope;
+    } else if (kind === 'pdf') {
+      clientId = this.pdfId; clientSecret = this.pdfSecret; scope = this.pdfScope;
+    } else {
+      throw new Error('Unknown Foxit token kind');
+    }
+
+    const params = new URLSearchParams();
+    params.append('grant_type', 'client_credentials');
+    params.append('client_id', clientId || '');
+    params.append('client_secret', clientSecret || '');
+    if (scope) params.append('scope', scope);
+    const tokenUrl = this.oauthTokenUrl;
+    const resp = await axios.post(tokenUrl, params.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    const { access_token, expires_in } = resp.data || {};
+    if (!access_token) throw new Error('Failed to obtain Foxit access token');
+    const expiresAt = now + (Number(expires_in) || 3600);
+    this._tokens[kind] = { token: access_token, expiresAt };
+    return access_token;
+  }
+
+  async _authHeader(kind) {
+    if (kind === 'pdf') {
+      const id = this.pdfId || '';
+      const secret = this.pdfSecret || '';
+      const basic = Buffer.from(`${id}:${secret}`).toString('base64');
+      return { Authorization: `Basic ${basic}` };
+    }
+    const token = await this._getToken(kind);
+    return { Authorization: `Bearer ${token}` };
   }
 
   // Convert document to PDF
@@ -24,14 +75,16 @@ class FoxitService {
         {
           headers: {
             ...formData.getHeaders(),
-            'Authorization': `Bearer ${this.docGenId}:${this.docGenSecret}`
+            ...(await this._authHeader('docgen'))
           }
         }
       );
 
       return response.data;
     } catch (error) {
-      console.error('Foxit conversion error:', error);
+      const status = error.response?.status;
+      const data = error.response?.data;
+      console.error('Foxit conversion error:', { status, data, message: error.message });
       throw new Error('Failed to convert document to PDF');
     }
   }
@@ -39,25 +92,47 @@ class FoxitService {
   // Optimize PDF (reduce file size)
   async optimizePDF(pdfBuffer) {
     try {
+      // This method will be refactored to the new documentId flow soon.
+      // Keep for compatibility if called elsewhere.
       const formData = new FormData();
       formData.append('file', pdfBuffer, 'document.pdf');
-      formData.append('optimization', 'true');
-      formData.append('compression', 'high');
+      // Upload then linearize per official API
+      const uploadUrl = `${this.pdfApiBase}/documents/upload`;
+      let uploadResp;
+      try {
+        uploadResp = await axios.post(
+          uploadUrl,
+          formData,
+          { headers: { ...(await this._authHeader('pdf')), ...formData.getHeaders() } }
+        );
+      } catch (error) {
+        const status = error.response?.status;
+        const data = error.response?.data;
+        console.error('Foxit upload error (optimizePDF):', { url: uploadUrl, status, data, message: error.message });
+        throw error;
+      }
+      const documentId = uploadResp.data?.documentId;
+      if (!documentId) throw new Error('Upload did not return documentId');
 
-      const response = await axios.post(
-        `${this.pdfBaseUrl}/api/v1/optimize`,
-        formData,
-        {
-          headers: {
-            ...formData.getHeaders(),
-            'Authorization': `Bearer ${this.pdfId}:${this.pdfSecret}`
-          }
-        }
-      );
-
-      return response.data;
+      const opUrl = `${this.pdfApiBase}/documents/optimize/pdf-linearize`;
+      let response;
+      try {
+        response = await axios.post(
+          opUrl,
+          { documentId },
+          { headers: { 'Content-Type': 'application/json', ...(await this._authHeader('pdf')) } }
+        );
+      } catch (error) {
+        const status = error.response?.status;
+        const data = error.response?.data;
+        console.error('Foxit linearize error:', { url: opUrl, status, data, message: error.message });
+        throw error;
+      }
+      return response.data; // expected to contain taskId (202)
     } catch (error) {
-      console.error('Foxit optimization error:', error);
+      const status = error.response?.status;
+      const data = error.response?.data;
+      console.error('Foxit optimization error:', { status, data, message: error.message });
       throw new Error('Failed to optimize PDF');
     }
   }
@@ -65,24 +140,45 @@ class FoxitService {
   // Extract text from PDF
   async extractText(pdfBuffer) {
     try {
+      // Upload then call pdf-extract per official API
       const formData = new FormData();
       formData.append('file', pdfBuffer, 'document.pdf');
-      formData.append('extractText', 'true');
+      const uploadUrl = `${this.pdfApiBase}/documents/upload`;
+      let uploadResp;
+      try {
+        uploadResp = await axios.post(
+          uploadUrl,
+          formData,
+          { headers: { ...(await this._authHeader('pdf')), ...formData.getHeaders() } }
+        );
+      } catch (error) {
+        const status = error.response?.status;
+        const data = error.response?.data;
+        console.error('Foxit upload error (extractText):', { url: uploadUrl, status, data, message: error.message });
+        throw error;
+      }
+      const documentId = uploadResp.data?.documentId;
+      if (!documentId) throw new Error('Upload did not return documentId');
 
-      const response = await axios.post(
-        `${this.pdfBaseUrl}/api/v1/extract`,
-        formData,
-        {
-          headers: {
-            ...formData.getHeaders(),
-            'Authorization': `Bearer ${this.pdfId}:${this.pdfSecret}`
-          }
-        }
-      );
-
-      return response.data;
+      const opUrl = `${this.pdfApiBase}/documents/modify/pdf-extract`;
+      let response;
+      try {
+        response = await axios.post(
+          opUrl,
+          { documentId, extractType: 'TEXT' },
+          { headers: { 'Content-Type': 'application/json', ...(await this._authHeader('pdf')) } }
+        );
+      } catch (error) {
+        const status = error.response?.status;
+        const data = error.response?.data;
+        console.error('Foxit extract error:', { url: opUrl, status, data, message: error.message });
+        throw error;
+      }
+      return response.data; // expected to contain taskId (202)
     } catch (error) {
-      console.error('Foxit text extraction error:', error);
+      const status = error.response?.status;
+      const data = error.response?.data;
+      console.error('Foxit text extraction error:', { status, data, message: error.message });
       throw new Error('Failed to extract text from PDF');
     }
   }
@@ -100,14 +196,16 @@ class FoxitService {
         {
           headers: {
             ...formData.getHeaders(),
-            'Authorization': `Bearer ${this.pdfId}:${this.pdfSecret}`
+            ...(await this._authHeader('pdf'))
           }
         }
       );
 
       return response.data;
     } catch (error) {
-      console.error('Foxit split error:', error);
+      const status = error.response?.status;
+      const data = error.response?.data;
+      console.error('Foxit split error:', { status, data, message: error.message });
       throw new Error('Failed to split PDF');
     }
   }
@@ -127,14 +225,16 @@ class FoxitService {
         {
           headers: {
             ...formData.getHeaders(),
-            'Authorization': `Bearer ${this.pdfId}:${this.pdfSecret}`
+            ...(await this._authHeader('pdf'))
           }
         }
       );
 
       return response.data;
     } catch (error) {
-      console.error('Foxit merge error:', error);
+      const status = error.response?.status;
+      const data = error.response?.data;
+      console.error('Foxit merge error:', { status, data, message: error.message });
       throw new Error('Failed to merge PDFs');
     }
   }
@@ -153,15 +253,37 @@ class FoxitService {
         {
           headers: {
             ...formData.getHeaders(),
-            'Authorization': `Bearer ${this.pdfId}:${this.pdfSecret}`
+            ...(await this._authHeader('pdf'))
           }
         }
       );
 
       return response.data;
     } catch (error) {
-      console.error('Foxit protection error:', error);
+      const status = error.response?.status;
+      const data = error.response?.data;
+      console.error('Foxit protection error:', { status, data, message: error.message });
       throw new Error('Failed to protect PDF');
+    }
+  }
+
+  // Safe auth check (no token value is returned)
+  async checkAuth(kind) {
+    try {
+      if (kind === 'pdf') {
+        // Probe the upload endpoint with Basic auth to verify credentials
+        const resp = await axios.options(`${this.pdfApiBase}/documents/upload`, {
+          headers: { ...(await this._authHeader('pdf')) }
+        });
+        return { ok: resp.status >= 200 && resp.status < 300 };
+      }
+      await this._getToken(kind);
+      return { ok: true };
+    } catch (e) {
+      const status = e.response?.status;
+      const data = e.response?.data;
+      console.error('Foxit auth check failed:', { kind, status, data, message: e.message });
+      return { ok: false, error: e.message, status };
     }
   }
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { API_ENDPOINTS } from '../../config/api';
 
 const DocumentList = () => {
   const [documents, setDocuments] = useState([]);
@@ -12,34 +13,44 @@ const DocumentList = () => {
   useEffect(() => {
     const fetchDocuments = async () => {
       try {
-        // In a real application, this would be an API call
-        // For now, we'll simulate the data
-        
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const mockDocuments = [
-          { id: '1', name: 'Business Proposal.pdf', description: 'Q3 business proposal for client XYZ', fileType: 'pdf', fileSize: 2500000, createdAt: '2025-08-25T10:30:00Z', updatedAt: '2025-08-25T10:30:00Z', tags: ['business', 'proposal'] },
-          { id: '2', name: 'Financial Report Q2.xlsx', description: 'Quarterly financial report', fileType: 'xlsx', fileSize: 1800000, createdAt: '2025-08-24T14:15:00Z', updatedAt: '2025-08-24T14:15:00Z', tags: ['finance', 'report'] },
-          { id: '3', name: 'Project Timeline.docx', description: 'Project timeline and milestones', fileType: 'docx', fileSize: 950000, createdAt: '2025-08-23T09:45:00Z', updatedAt: '2025-08-23T09:45:00Z', tags: ['project', 'timeline'] },
-          { id: '4', name: 'Marketing Presentation.pptx', description: 'Marketing strategy presentation', fileType: 'pptx', fileSize: 3200000, createdAt: '2025-08-22T16:20:00Z', updatedAt: '2025-08-22T16:20:00Z', tags: ['marketing', 'presentation'] },
-          { id: '5', name: 'Contract Agreement.pdf', description: 'Legal contract for service agreement', fileType: 'pdf', fileSize: 1200000, createdAt: '2025-08-21T11:10:00Z', updatedAt: '2025-08-21T11:10:00Z', tags: ['legal', 'contract'] },
-          { id: '6', name: 'Employee Handbook.pdf', description: 'Company employee handbook', fileType: 'pdf', fileSize: 4500000, createdAt: '2025-08-20T13:25:00Z', updatedAt: '2025-08-20T13:25:00Z', tags: ['hr', 'handbook'] },
-          { id: '7', name: 'Sales Data.xlsx', description: 'Monthly sales data analysis', fileType: 'xlsx', fileSize: 2100000, createdAt: '2025-08-19T15:40:00Z', updatedAt: '2025-08-19T15:40:00Z', tags: ['sales', 'data'] },
-          { id: '8', name: 'Meeting Minutes.docx', description: 'Board meeting minutes', fileType: 'docx', fileSize: 850000, createdAt: '2025-08-18T09:30:00Z', updatedAt: '2025-08-18T09:30:00Z', tags: ['meeting', 'minutes'] },
-        ];
-        
-        setDocuments(mockDocuments);
+        const res = await axios.get(API_ENDPOINTS.DOCUMENTS, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        const docs = (res.data?.data || []).map(d => ({
+          id: d._id || d.id,
+          name: d.name,
+          description: d.description || '',
+          fileType: d.fileType,
+          fileSize: d.fileSize || 0,
+          createdAt: d.createdAt,
+          updatedAt: d.updatedAt || d.createdAt,
+          tags: Array.isArray(d.tags) ? d.tags : []
+        }));
+        setDocuments(docs);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching documents:', error);
-        setError('Failed to fetch documents. Please try again later.');
+        setError(error.response?.data?.message || 'Failed to fetch documents. Please try again later.');
         setLoading(false);
       }
     };
 
     fetchDocuments();
   }, []);
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this document?')) {
+      try {
+        await axios.delete(`${API_ENDPOINTS.DOCUMENTS}/${id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        setDocuments(prev => prev.filter(doc => doc.id !== id));
+      } catch (error) {
+        console.error('Error deleting document:', error);
+        alert(error.response?.data?.message || 'Failed to delete document. Please try again later.');
+      }
+    }
+  };
 
   const formatFileSize = (bytes) => {
     if (bytes < 1024) return bytes + ' B';
@@ -55,20 +66,6 @@ const DocumentList = () => {
       month: 'short', 
       day: 'numeric' 
     });
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this document?')) {
-      try {
-        // In a real application, this would be an API call
-        // For now, we'll just update the state
-        
-        setDocuments(documents.filter(doc => doc.id !== id));
-      } catch (error) {
-        console.error('Error deleting document:', error);
-        alert('Failed to delete document. Please try again later.');
-      }
-    }
   };
 
   const filteredDocuments = documents.filter(doc => {

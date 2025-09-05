@@ -4,6 +4,14 @@ const express = require('express');
 const router = express.Router();
 // Controller sẽ được tạo sau
 // const userController = require('../controllers/userController');
+const userController = require('../controllers/userController');
+const { getMe, updateDetails, updatePassword } = require('../controllers/authController');
+const { protect } = require('../middleware/auth');
+
+// Profile routes to match frontend API_ENDPOINTS.PROFILE
+router.get('/profile', protect, getMe);
+router.put('/profile', protect, updateDetails);
+router.put('/profile/password', protect, updatePassword);
 
 // GET /api/users - Lấy danh sách người dùng (admin only)
 router.get('/', (req, res) => {

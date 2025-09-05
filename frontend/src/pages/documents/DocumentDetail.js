@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { API_ENDPOINTS } from '../../config/api';
 import axios from 'axios';
+import PdfViewer from '../../components/PdfViewer';
 
 const DocumentDetail = () => {
   const [document, setDocument] = useState(null);
@@ -10,10 +11,18 @@ const DocumentDetail = () => {
   const [error, setError] = useState('');
   const [operationLoading, setOperationLoading] = useState(false);
   const [operationResult, setOperationResult] = useState(null);
-  
+
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const previewUrl = useMemo(() => {
+    if (!document?.fileUrl) return '';
+    // Ensure absolute path for CRA dev when backend serves /uploads
+    if (document.fileUrl.startsWith('http')) return document.fileUrl;
+    const base = process.env.REACT_APP_BACKEND_BASE || 'http://localhost:5001';
+    return `${base}${document.fileUrl.startsWith('/') ? '' : '/'}${document.fileUrl}`;
+  }, [document]);
 
   useEffect(() => {
     fetchDocument();
@@ -221,12 +230,8 @@ const DocumentDetail = () => {
         <div className="mt-8">
           <h3 className="text-lg font-semibold mb-4">File Preview</h3>
           <div className="border rounded-md p-4 bg-gray-50">
-            <p className="text-gray-600">
-              File: {document.fileUrl}
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Preview functionality will be implemented with PDF.js
-            </p>
+            <div className="mb-3 text-sm text-gray-600 break-all">File URL: {document.fileUrl}</div>
+            <PdfViewer fileUrl={previewUrl} />
           </div>
         </div>
       </div>

@@ -223,7 +223,8 @@ exports.splitDocument = async (req, res, next) => {
     }
 
     // Read file from disk
-    const filePath = path.join(__dirname, '../../uploads', document.fileUrl);
+    const relativePath1 = document.fileUrl && document.fileUrl.startsWith('/') ? document.fileUrl.slice(1) : document.fileUrl;
+    const filePath = path.join(__dirname, '../../', relativePath1);
     const fileBuffer = await fs.readFile(filePath);
     
     // Split PDF using Foxit API
@@ -266,7 +267,8 @@ exports.optimizeDocument = async (req, res, next) => {
     }
 
     // Read file from disk
-    const filePath = path.join(__dirname, '../../uploads', document.fileUrl);
+    const relativePathOpt = document.fileUrl && document.fileUrl.startsWith('/') ? document.fileUrl.slice(1) : document.fileUrl;
+    const filePath = path.join(__dirname, '../../', relativePathOpt);
     const fileBuffer = await fs.readFile(filePath);
     
     // Optimize PDF using Foxit API
@@ -309,7 +311,8 @@ exports.extractText = async (req, res, next) => {
     }
 
     // Read file from disk
-    const filePath = path.join(__dirname, '../../uploads', document.fileUrl);
+    const relativePathExt = document.fileUrl && document.fileUrl.startsWith('/') ? document.fileUrl.slice(1) : document.fileUrl;
+    const filePath = path.join(__dirname, '../../', relativePathExt);
     const fileBuffer = await fs.readFile(filePath);
     
     // Extract text using Foxit API
@@ -372,7 +375,8 @@ exports.protectDocument = async (req, res, next) => {
     }
 
     // Read file from disk
-    const filePath = path.join(__dirname, '../../uploads', document.fileUrl);
+    const relativePath1 = document.fileUrl && document.fileUrl.startsWith('/') ? document.fileUrl.slice(1) : document.fileUrl;
+    const filePath = path.join(__dirname, '../../', relativePath1);
     const fileBuffer = await fs.readFile(filePath);
     
     // Protect PDF using Foxit API
