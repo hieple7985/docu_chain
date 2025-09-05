@@ -80,12 +80,15 @@ const DocumentList = () => {
 
   if (loading) {
     return (
-      <div className="page-container flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="spinner-border text-blue-600" role="status">
-            <span className="sr-only">Loading...</span>
+      <div className="page-container">
+        <div className="space-y-4 animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-10 bg-gray-200 rounded"></div>
+          <div className="bg-white shadow rounded-md p-4 space-y-4">
+            <div className="h-6 bg-gray-200 rounded"></div>
+            <div className="h-6 bg-gray-200 rounded w-5/6"></div>
+            <div className="h-6 bg-gray-200 rounded w-2/3"></div>
           </div>
-          <p className="mt-2">Loading documents...</p>
         </div>
       </div>
     );
@@ -94,9 +97,8 @@ const DocumentList = () => {
   if (error) {
     return (
       <div className="page-container">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error!</strong>
-          <span className="block sm:inline"> {error}</span>
+        <div role="alert" className="alert alert-error">
+          <span>{error}</span>
         </div>
       </div>
     );

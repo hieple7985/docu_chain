@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+
 import { API_ENDPOINTS } from '../../config/api';
 import axios from 'axios';
 
@@ -12,7 +12,7 @@ const DocumentUpload = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
-  const { user } = useAuth();
+
   const navigate = useNavigate();
 
   const handleFileChange = (e) => {
@@ -43,7 +43,7 @@ const DocumentUpload = () => {
       formData.append('name', name);
       formData.append('description', description);
 
-      const response = await axios.post(API_ENDPOINTS.DOCUMENT_UPLOAD, formData, {
+      await axios.post(API_ENDPOINTS.DOCUMENT_UPLOAD, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -68,14 +68,14 @@ const DocumentUpload = () => {
         <h1 className="text-2xl font-bold text-gray-800 mb-6">Upload Document</h1>
         
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+          <div role="alert" className="alert alert-error mb-4">
+            <span>{error}</span>
           </div>
         )}
-        
+
         {success && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-            {success}
+          <div role="alert" className="alert alert-success mb-4">
+            <span>{success}</span>
           </div>
         )}
 

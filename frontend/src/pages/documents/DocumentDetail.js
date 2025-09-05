@@ -12,6 +12,10 @@ const DocumentDetail = () => {
   const [operationLoading, setOperationLoading] = useState(false);
   const [operationResult, setOperationResult] = useState(null);
 
+  const [showProtect, setShowProtect] = useState(false);
+  const [protectPassword, setProtectPassword] = useState('');
+  const [showSplit, setShowSplit] = useState(false);
+  const [splitPages, setSplitPages] = useState('');
   const { id } = useParams();
 
   const navigate = useNavigate();
@@ -90,27 +94,42 @@ const DocumentDetail = () => {
     }
   };
 
-  const handleProtect = () => {
-    const password = prompt('Enter password to protect document:');
-    if (password) {
-      handleOperation('protect', { password });
-    }
+  const handleProtect = () => setShowProtect(true);
+
+  const confirmProtect = () => {
+    if (!protectPassword) return;
+    handleOperation('protect', { password: protectPassword });
+    setShowProtect(false);
+    setProtectPassword('');
   };
 
-  const handleSplit = () => {
-    const pages = prompt('Enter page numbers to split (e.g., 1,3,5):');
-    if (pages) {
-      const pageArray = pages.split(',').map(p => parseInt(p.trim())).filter(p => !isNaN(p));
-      if (pageArray.length > 0) {
-        handleOperation('split', { pages: pageArray });
-      }
+  const handleSplit = () => setShowSplit(true);
+
+  const confirmSplit = () => {
+    if (!splitPages) return;
+    const pageArray = splitPages.split(',').map(p => parseInt(p.trim())).filter(p => !isNaN(p));
+    if (pageArray.length > 0) {
+      handleOperation('split', { pages: pageArray });
     }
+    setShowSplit(false);
+    setSplitPages('');
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading...</div>
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="space-y-4 animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            </div>
+            <div className="h-24 bg-gray-200 rounded"></div>
+          </div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
       </div>
     );
   }
@@ -118,8 +137,8 @@ const DocumentDetail = () => {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
+        <div role="alert" className="alert alert-error">
+          <span>{error}</span>
         </div>
       </div>
     );
@@ -141,7 +160,7 @@ const DocumentDetail = () => {
           <h1 className="text-2xl font-bold text-gray-800">{document.name}</h1>
           <button
             onClick={() => navigate('/documents')}
-            className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+            className="btn btn-ghost"
           >
             Back to Documents
           </button>
@@ -173,7 +192,7 @@ const DocumentDetail = () => {
             <button
               onClick={() => handleOperation('optimize')}
               disabled={operationLoading}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="btn btn-primary"
             >
               Optimize PDF
             </button>
@@ -181,7 +200,7 @@ const DocumentDetail = () => {
             <button
               onClick={() => handleOperation('extract-text')}
               disabled={operationLoading}
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
+              className="btn btn-success"
             >
               Extract Text
             </button>
@@ -189,7 +208,7 @@ const DocumentDetail = () => {
             <button
               onClick={handleProtect}
               disabled={operationLoading || document.isProtected}
-              className="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 disabled:opacity-50"
+              className="btn btn-warning"
             >
               Protect PDF
             </button>
@@ -197,7 +216,7 @@ const DocumentDetail = () => {
             <button
               onClick={handleSplit}
               disabled={operationLoading}
-              className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 disabled:opacity-50"
+              className="btn btn-secondary"
             >
               Split PDF
             </button>
@@ -206,24 +225,10 @@ const DocumentDetail = () => {
 
         {/* Operation Result */}
         {operationResult && (
-          <div className={`border rounded-md p-4 ${
-            operationResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-          }`}>
-            <h4 className={`font-medium ${
-              operationResult.success ? 'text-green-800' : 'text-red-800'
-            }`}>
-              {operationResult.success ? 'Success!' : 'Error'}
-            </h4>
-            <p className={`mt-1 ${
-              operationResult.success ? 'text-green-700' : 'text-red-700'
-            }`}>
-              {operationResult.message}
-            </p>
-            {operationResult.data && (
-              <pre className="mt-2 text-sm bg-gray-100 p-2 rounded overflow-auto">
-                {JSON.stringify(operationResult.data, null, 2)}
-              </pre>
-            )}
+          <div className="toast toast-end z-10">
+            <div className={`${operationResult.success ? 'alert alert-success' : 'alert alert-error'}`}>
+              <span>{operationResult.message}</span>
+            </div>
           </div>
         )}
 
@@ -235,7 +240,50 @@ const DocumentDetail = () => {
             <PdfViewer fileUrl={previewUrl} />
           </div>
         </div>
-      </div>
+        </div>
+
+        {/* Protect Modal */}
+        {showProtect && (
+          <dialog className="modal" open>
+            <div className="modal-box">
+              <h3 className="font-bold text-lg">Protect PDF</h3>
+              <p className="py-2">Enter a password to protect this document.</p>
+              <input
+                type="password"
+                placeholder="Password"
+                className="input input-bordered w-full"
+                value={protectPassword}
+                onChange={(e) => setProtectPassword(e.target.value)}
+              />
+              <div className="modal-action">
+                <button className="btn" onClick={() => { setShowProtect(false); setProtectPassword(''); }}>Cancel</button>
+                <button className="btn btn-warning" onClick={confirmProtect} disabled={operationLoading || !protectPassword}>Protect</button>
+              </div>
+            </div>
+          </dialog>
+        )}
+
+        {/* Split Modal */}
+        {showSplit && (
+          <dialog className="modal" open>
+            <div className="modal-box">
+              <h3 className="font-bold text-lg">Split PDF</h3>
+              <p className="py-2">Enter page numbers to split (e.g., 1,3,5)</p>
+              <input
+                type="text"
+                placeholder="e.g., 1,3,5"
+                className="input input-bordered w-full"
+                value={splitPages}
+                onChange={(e) => setSplitPages(e.target.value)}
+              />
+              <div className="modal-action">
+                <button className="btn" onClick={() => { setShowSplit(false); setSplitPages(''); }}>Cancel</button>
+                <button className="btn btn-secondary" onClick={confirmSplit} disabled={operationLoading || !splitPages}>Split</button>
+              </div>
+            </div>
+          </dialog>
+        )}
+
     </div>
   );
 };
