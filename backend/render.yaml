@@ -1,0 +1,69 @@
+services:
+  - type: web
+    name: docu_chain
+    env: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeploy: true
+
+    # Monorepo: point to backend package.json directory
+    rootDir: backend
+
+    buildCommand: npm install
+    startCommand: node src/index.js
+
+    healthCheckPath: /health
+
+    # Optional persistent disk for /uploads (keeps generated files across restarts)
+    disk:
+      name: uploads
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1
+
+    envVars:
+      # Required
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+
+      # CORS & logging
+      - key: CORS_ORIGINS
+        value: https://docu-chain-h85.vercel.app
+      - key: REQUEST_LOGGING
+        value: off
+
+      # Frontend serving through backend is disabled on Render
+      - key: SERVE_FRONTEND
+        value: "false"
+      - key: ENABLE_DIRECT_TEST_UPLOADS
+        value: "false"
+
+      # Foxit base config (you can omit these if using local fallbacks only)
+      - key: FOXIT_BASE_URL
+        value: https://na1.fusion.foxit.com
+      - key: FOXIT_OAUTH_TOKEN_URL
+        value: https://na1.fusion.foxit.com/oauth2/token
+
+      # Foxit OAuth (Doc Gen)
+      - key: FOXIT_DOCGEN_ID
+        sync: false
+      - key: FOXIT_DOCGEN_SECRET
+        sync: false
+      - key: FOXIT_DOCGEN_SCOPE
+        value: ""
+
+      # Foxit PDF Services
+      - key: FOXIT_PDF_BASE_URL
+        value: https://app.developer-api.foxit.com
+      - key: FOXIT_PDF_API_BASE
+        value: https://app.developer-api.foxit.com/pdf-services/api
+      - key: FOXIT_PDF_ID
+        sync: false
+      - key: FOXIT_PDF_SECRET
+        sync: false
+      - key: FOXIT_PDF_SCOPE
+        value: ""
