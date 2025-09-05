@@ -35,6 +35,27 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
+// Serve frontend build (single-port deploy)
+const frontendBuildPath = path.join(__dirname, '../../frontend/build');
+app.use(express.static(frontendBuildPath));
+app.get('*', (req, res) => {
+  // Do not hijack API routes
+  if (req.path.startsWith('/api')) return res.status(404).json({ message: 'Not Found' });
+  res.sendFile(path.join(frontendBuildPath, 'index.html'));
+});
+
+// Foxit health (sanity)
+app.get('/api/integrations/foxit/health', async (req, res) => {
+  try {
+    const foxitService = require('./services/foxitService');
+    const pdfCheck = await foxitService.checkAuth('pdf');
+    const docgenCheck = await foxitService.checkAuth('docgen');
+    res.status(200).json({ success: true, pdf: pdfCheck, docgen: docgenCheck });
+  } catch (e) {
+    res.status(200).json({ success: false, error: e.message });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
