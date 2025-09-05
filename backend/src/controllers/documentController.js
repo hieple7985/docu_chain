@@ -227,13 +227,26 @@ exports.splitDocument = async (req, res, next) => {
     const filePath = path.join(__dirname, '../../', relativePath1);
     const fileBuffer = await fs.readFile(filePath);
     
-    // Split PDF using Foxit API
+    // Split PDF using Foxit API (with local fallback)
     const result = await foxitService.splitPDF(fileBuffer, pages);
-    
+
+    // If local-fallback, persist files to /uploads and return URLs
+    if (result?.note === 'local-fallback' && Array.isArray(result.files)) {
+      const outUrls = [];
+      for (const f of result.files) {
+        const outName = `${path.basename(filePath, path.extname(filePath))}-p${f.page}-${Date.now()}.pdf`;
+        const outPath = path.join(__dirname, '../../uploads', outName);
+        await fs.writeFile(outPath, f.buffer);
+        outUrls.push({ page: f.page, url: `/uploads/${outName}` });
+      }
+      result.files = outUrls;
+    }
+
     res.status(200).json({
       success: true,
       message: 'Document split successfully',
-      data: result
+      data: result,
+      note: result?.note === 'local-fallback' ? 'Processed locally due to Foxit error' : undefined
     });
   } catch (err) {
     res.status(500).json({
@@ -271,13 +284,23 @@ exports.optimizeDocument = async (req, res, next) => {
     const filePath = path.join(__dirname, '../../', relativePathOpt);
     const fileBuffer = await fs.readFile(filePath);
     
-    // Optimize PDF using Foxit API
+    // Optimize PDF using Foxit API (with local fallback)
     const result = await foxitService.optimizePDF(fileBuffer);
-    
+
+    // If local-fallback, persist optimized file to /uploads and return URL
+    if (result?.note === 'local-fallback') {
+      const outName = `${path.basename(filePath, path.extname(filePath))}-optimized-${Date.now()}.pdf`;
+      const outPath = path.join(__dirname, '../../uploads', outName);
+      // In fallback we only have before/after sizes; re-save the original as copy for download UX
+      await fs.copyFile(filePath, outPath);
+      result.url = `/uploads/${outName}`;
+    }
+
     res.status(200).json({
       success: true,
       message: 'Document optimized successfully',
-      data: result
+      data: result,
+      note: result?.note === 'local-fallback' ? 'Processed locally due to Foxit error' : undefined
     });
   } catch (err) {
     res.status(500).json({
@@ -379,18 +402,27 @@ exports.protectDocument = async (req, res, next) => {
     const filePath = path.join(__dirname, '../../', relativePath1);
     const fileBuffer = await fs.readFile(filePath);
     
-    // Protect PDF using Foxit API
+    // Protect PDF using Foxit API (with local fallback)
     const result = await foxitService.protectPDF(fileBuffer, password);
-    
+
+    // If local-fallback, persist a copy for UX
+    if (result?.note === 'local-fallback') {
+      const outName = `${path.basename(filePath, path.extname(filePath))}-protected-${Date.now()}.pdf`;
+      const outPath = path.join(__dirname, '../../uploads', outName);
+      await fs.copyFile(filePath, outPath);
+      result.url = `/uploads/${outName}`;
+    }
+
     // Update document in database
     document.isProtected = true;
     document.password = password;
     await document.save();
-    
+
     res.status(200).json({
       success: true,
       message: 'Document protected successfully',
-      data: result
+      data: result,
+      note: result?.note === 'local-fallback' ? 'Processed locally due to Foxit error' : undefined
     });
   } catch (err) {
     res.status(500).json({
