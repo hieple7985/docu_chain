@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import jwt_decode from 'jwt-decode';
+import API_BASE_URL, { API_ENDPOINTS } from '../config/api';
 
 const AuthContext = createContext();
 
@@ -34,7 +35,7 @@ export const AuthProvider = ({ children }) => {
             logout();
           } else {
             // Get user data
-            const res = await axios.get('/api/auth/me');
+            const res = await axios.get(API_ENDPOINTS.PROFILE.replace('/users/profile', '/auth/me'));
             setCurrentUser(res.data.data);
           }
         } catch (error) {
@@ -51,7 +52,7 @@ export const AuthProvider = ({ children }) => {
   // Register user
   const register = async (userData) => {
     try {
-      const res = await axios.post('/api/auth/register', userData);
+      const res = await axios.post(API_ENDPOINTS.REGISTER, userData);
       
       if (res.data.success) {
         localStorage.setItem('token', res.data.token);
@@ -70,7 +71,7 @@ export const AuthProvider = ({ children }) => {
   // Login user
   const login = async (userData) => {
     try {
-      const res = await axios.post('/api/auth/login', userData);
+      const res = await axios.post(API_ENDPOINTS.LOGIN, userData);
       
       if (res.data.success) {
         localStorage.setItem('token', res.data.token);

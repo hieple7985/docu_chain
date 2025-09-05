@@ -1,13 +1,22 @@
 const axios = require('axios');
 const FormData = require('form-data');
 
+
+// Normalize known Foxit host typos in env (developer.api -> developer-api)
+function normalizeFoxitBase(url) {
+  if (!url) return url;
+  const fixed = url.replace('developer.api.', 'developer-api.');
+  return fixed.replace(/\/$/, '');
+}
+
 class FoxitService {
   constructor() {
     const base = process.env.FOXIT_BASE_URL || 'https://na1.fusion.foxit.com';
     this.baseUrl = base;
     this.docGenBaseUrl = base;
-    this.pdfBaseUrl = process.env.FOXIT_PDF_BASE_URL || 'https://app.developer-api.foxit.com';
-    this.pdfApiBase = process.env.FOXIT_PDF_API_BASE || `${this.pdfBaseUrl}/pdf-services/api`;
+    const pdfBaseEnv = normalizeFoxitBase(process.env.FOXIT_PDF_BASE_URL) || 'https://app.developer-api.foxit.com';
+    this.pdfBaseUrl = pdfBaseEnv;
+    this.pdfApiBase = normalizeFoxitBase(process.env.FOXIT_PDF_API_BASE) || `${this.pdfBaseUrl}/pdf-services/api`;
     this.oauthTokenUrl = process.env.FOXIT_OAUTH_TOKEN_URL || `${base}/oauth2/token`;
     this.docGenId = process.env.FOXIT_DOCGEN_ID;
     this.docGenSecret = process.env.FOXIT_DOCGEN_SECRET;
@@ -103,7 +112,7 @@ class FoxitService {
         uploadResp = await axios.post(
           uploadUrl,
           formData,
-          { headers: { ...(await this._authHeader('pdf')), ...formData.getHeaders() } }
+          { headers: { ...(await this._authHeader('pdf')), ...formData.getHeaders() }, timeout: 10000 }
         );
       } catch (error) {
         const status = error.response?.status;
@@ -139,8 +148,8 @@ class FoxitService {
 
   // Extract text from PDF
   async extractText(pdfBuffer) {
+    // Primary path: Foxit PDF Services
     try {
-      // Upload then call pdf-extract per official API
       const formData = new FormData();
       formData.append('file', pdfBuffer, 'document.pdf');
       const uploadUrl = `${this.pdfApiBase}/documents/upload`;
@@ -149,7 +158,7 @@ class FoxitService {
         uploadResp = await axios.post(
           uploadUrl,
           formData,
-          { headers: { ...(await this._authHeader('pdf')), ...formData.getHeaders() } }
+          { headers: { ...(await this._authHeader('pdf')), ...formData.getHeaders() }, timeout: 10000 }
         );
       } catch (error) {
         const status = error.response?.status;
@@ -166,7 +175,7 @@ class FoxitService {
         response = await axios.post(
           opUrl,
           { documentId, extractType: 'TEXT' },
-          { headers: { 'Content-Type': 'application/json', ...(await this._authHeader('pdf')) } }
+          { headers: { 'Content-Type': 'application/json', ...(await this._authHeader('pdf')) }, timeout: 10000 }
         );
       } catch (error) {
         const status = error.response?.status;
@@ -176,10 +185,19 @@ class FoxitService {
       }
       return response.data; // expected to contain taskId (202)
     } catch (error) {
-      const status = error.response?.status;
-      const data = error.response?.data;
-      console.error('Foxit text extraction error:', { status, data, message: error.message });
-      throw new Error('Failed to extract text from PDF');
+      // Fallback path: local extraction using pdf-parse (no external service)
+      try {
+        const pdfParse = require('pdf-parse');
+        const parsed = await pdfParse(pdfBuffer);
+        // Normalize to the same shape used in frontend expectations
+        return { text: parsed.text };
+      } catch (localErr) {
+        const status = error.response?.status;
+        const data = error.response?.data;
+        console.error('Foxit text extraction error:', { status, data, message: error.message });
+        console.error('Local pdf-parse fallback error:', { message: localErr.message });
+        throw new Error('Failed to extract text from PDF');
+      }
     }
   }
 
@@ -214,7 +232,7 @@ class FoxitService {
   async mergePDFs(pdfBuffers) {
     try {
       const formData = new FormData();
-      
+
       pdfBuffers.forEach((buffer, index) => {
         formData.append('files', buffer, `document_${index}.pdf`);
       });

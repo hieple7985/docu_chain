@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import { API_ENDPOINTS } from '../../config/api';
+import API_BASE_URL, { API_ENDPOINTS } from '../../config/api';
 import axios from 'axios';
 import PdfViewer from '../../components/PdfViewer';
 
@@ -11,6 +11,8 @@ const DocumentDetail = () => {
   const [error, setError] = useState('');
   const [operationLoading, setOperationLoading] = useState(false);
   const [operationResult, setOperationResult] = useState(null);
+  const [lastOperation, setLastOperation] = useState(null);
+  const [extractedText, setExtractedText] = useState('');
 
   const [showProtect, setShowProtect] = useState(false);
   const [protectPassword, setProtectPassword] = useState('');
@@ -24,7 +26,7 @@ const DocumentDetail = () => {
     if (!document?.fileUrl) return '';
     // Ensure absolute path for CRA dev when backend serves /uploads
     if (document.fileUrl.startsWith('http')) return document.fileUrl;
-    const base = process.env.REACT_APP_BACKEND_BASE || 'http://localhost:5001';
+    const base = API_BASE_URL.replace(/\/(api)?$/, '');
     return `${base}${document.fileUrl.startsWith('/') ? '' : '/'}${document.fileUrl}`;
   }, [document]);
 
@@ -50,7 +52,8 @@ const DocumentDetail = () => {
   const handleOperation = async (operation, data = {}) => {
     setOperationLoading(true);
     setOperationResult(null);
-
+    setLastOperation(operation);
+    if (operation !== 'extract-text') setExtractedText('');
 
     try {
       let endpoint;
@@ -79,10 +82,15 @@ const DocumentDetail = () => {
         }
       });
 
+      const dataRes = response.data?.data;
+      if (operation === 'extract-text' && dataRes) {
+        const text = typeof dataRes === 'string' ? dataRes : (dataRes.text || dataRes.content || JSON.stringify(dataRes));
+        setExtractedText(text);
+      }
       setOperationResult({
         success: true,
         message: response.data.message,
-        data: response.data.data
+        data: dataRes
       });
     } catch (err) {
       setOperationResult({
@@ -231,6 +239,12 @@ const DocumentDetail = () => {
             </div>
           </div>
         )}
+          {lastOperation === 'extract-text' && extractedText && (
+            <div className="mt-4">
+              <h4 className="font-semibold text-md mb-2">Extracted Text</h4>
+              <pre className="whitespace-pre-wrap text-sm bg-base-200 p-3 rounded max-h-64 overflow-auto">{extractedText}</pre>
+            </div>
+          )}
 
         {/* File Preview */}
         <div className="mt-8">
