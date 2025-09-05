@@ -88,7 +88,7 @@ const DocumentUpload = () => {
               type="file"
               onChange={handleFileChange}
               accept=".pdf,.docx,.xlsx,.pptx,.txt,.jpg,.png"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="file-input file-input-bordered w-full"
               required
             />
             <p className="text-sm text-gray-500 mt-1">
@@ -104,7 +104,7 @@ const DocumentUpload = () => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input input-bordered w-full"
               placeholder="Enter document name"
               required
             />
@@ -118,25 +118,16 @@ const DocumentUpload = () => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows="3"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="textarea textarea-bordered w-full"
               placeholder="Enter document description (optional)"
             />
           </div>
 
-          <div className="flex space-x-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-            >
+          <div className="flex gap-2">
+            <button type="submit" disabled={loading} className="btn btn-primary flex-1">
               {loading ? 'Uploading...' : 'Upload Document'}
             </button>
-            
-            <button
-              type="button"
-              onClick={() => navigate('/documents')}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
+            <button type="button" onClick={() => navigate('/documents')} className="btn btn-ghost flex-1">
               Cancel
             </button>
           </div>

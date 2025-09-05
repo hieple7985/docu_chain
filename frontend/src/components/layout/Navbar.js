@@ -12,49 +12,25 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-blue-600 text-white shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="text-xl font-bold">DocuChain</span>
-            </Link>
-          </div>
-          
-          <div className="flex items-center">
-            {isAuthenticated ? (
-              <>
-                <Link to="/dashboard" className="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-                  Dashboard
-                </Link>
-                <Link to="/documents" className="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-                  Documents
-                </Link>
-                <div className="relative ml-3">
-                  <div className="flex items-center">
-                    <Link to="/profile" className="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-                      Profile
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-                  Login
-                </Link>
-                <Link to="/register" className="ml-2 px-3 py-2 rounded-md text-sm font-medium bg-white text-blue-600 hover:bg-gray-100">
-                  Register
-                </Link>
-              </>
-            )}
-          </div>
+    <nav className="navbar bg-base-100 shadow">
+      <div className="container mx-auto">
+        <div className="flex-1">
+          <Link to="/" className="btn btn-ghost normal-case text-xl">DocuChain</Link>
+        </div>
+        <div className="flex-none gap-2">
+          {isAuthenticated ? (
+            <>
+              <Link to="/dashboard" className="btn btn-ghost">Dashboard</Link>
+              <Link to="/documents" className="btn btn-ghost">Documents</Link>
+              <Link to="/profile" className="btn btn-ghost">Profile</Link>
+              <button onClick={handleLogout} className="btn">Logout</button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="btn btn-ghost">Login</Link>
+              <Link to="/register" className="btn btn-primary">Register</Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

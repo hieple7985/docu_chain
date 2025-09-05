@@ -118,14 +118,14 @@ const DocumentList = () => {
           <input
             type="text"
             placeholder="Search documents..."
-            className="form-input"
+            className="input input-bordered w-full"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div>
           <select
-            className="form-input"
+            className="select select-bordered w-full max-w-xs"
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
           >
@@ -161,9 +161,9 @@ const DocumentList = () => {
                       </Link>
                     </div>
                     <div className="ml-2 flex-shrink-0 flex">
-                      <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                      <div className="badge badge-outline">
                         {doc.fileType.toUpperCase()}
-                      </p>
+                      </div>
                     </div>
                   </div>
                   <div className="mt-2 sm:flex sm:justify-between">
@@ -175,11 +175,11 @@ const DocumentList = () => {
                     </div>
                   </div>
                   <div className="mt-2 flex justify-between items-center">
-                    <div className="flex space-x-1">
+                    <div className="flex flex-wrap gap-1">
                       {doc.tags.map((tag, index) => (
-                        <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">
+                        <div key={index} className="badge badge-ghost">
                           {tag}
-                        </span>
+                        </div>
                       ))}
                     </div>
                     <div className="flex space-x-2">

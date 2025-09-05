@@ -122,7 +122,7 @@ const DocumentEdit = () => {
           <h1 className="text-2xl font-bold text-gray-800">Edit Document</h1>
           <button
             onClick={() => navigate(`/documents/${id}`)}
-            className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+            className="btn btn-ghost"
           >
             Cancel
           </button>
@@ -150,7 +150,7 @@ const DocumentEdit = () => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input input-bordered w-full"
               placeholder="Enter document name"
               required
             />
@@ -165,7 +165,7 @@ const DocumentEdit = () => {
               value={formData.description}
               onChange={handleChange}
               rows="3"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="textarea textarea-bordered w-full"
               placeholder="Enter document description"
             />
           </div>
@@ -179,7 +179,7 @@ const DocumentEdit = () => {
               name="tags"
               value={formData.tags}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input input-bordered w-full"
               placeholder="e.g., important, contract, 2025"
             />
             <p className="text-sm text-gray-500 mt-1">
@@ -187,20 +187,11 @@ const DocumentEdit = () => {
             </p>
           </div>
 
-          <div className="flex space-x-4">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-            >
+          <div className="flex gap-2">
+            <button type="submit" disabled={saving} className="btn btn-primary flex-1">
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
-            
-            <button
-              type="button"
-              onClick={() => navigate(`/documents/${id}`)}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
+            <button type="button" onClick={() => navigate(`/documents/${id}`)} className="btn btn-ghost flex-1">
               Cancel
             </button>
           </div>
