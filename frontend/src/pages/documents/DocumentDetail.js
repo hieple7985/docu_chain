@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+
 import { API_ENDPOINTS } from '../../config/api';
 import axios from 'axios';
 import PdfViewer from '../../components/PdfViewer';
@@ -13,7 +13,7 @@ const DocumentDetail = () => {
   const [operationResult, setOperationResult] = useState(null);
 
   const { id } = useParams();
-  const { user } = useAuth();
+
   const navigate = useNavigate();
 
   const previewUrl = useMemo(() => {
@@ -23,10 +23,6 @@ const DocumentDetail = () => {
     const base = process.env.REACT_APP_BACKEND_BASE || 'http://localhost:5001';
     return `${base}${document.fileUrl.startsWith('/') ? '' : '/'}${document.fileUrl}`;
   }, [document]);
-
-  useEffect(() => {
-    fetchDocument();
-  }, [id]);
 
   const fetchDocument = async () => {
     try {
@@ -42,15 +38,20 @@ const DocumentDetail = () => {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    fetchDocument();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleOperation = async (operation, data = {}) => {
     setOperationLoading(true);
     setOperationResult(null);
-    
+
+
     try {
       let endpoint;
       let payload = { documentId: id, ...data };
-      
+
       switch (operation) {
         case 'optimize':
           endpoint = API_ENDPOINTS.DOCUMENT_OPTIMIZE;
@@ -158,7 +159,7 @@ const DocumentDetail = () => {
               <div><span className="font-medium">Created:</span> {new Date(document.createdAt).toLocaleDateString()}</div>
             </div>
           </div>
-          
+
           <div>
             <h3 className="text-lg font-semibold mb-4">Description</h3>
             <p className="text-gray-600">{document.description || 'No description provided'}</p>
@@ -176,7 +177,7 @@ const DocumentDetail = () => {
             >
               Optimize PDF
             </button>
-            
+
             <button
               onClick={() => handleOperation('extract-text')}
               disabled={operationLoading}
@@ -184,7 +185,7 @@ const DocumentDetail = () => {
             >
               Extract Text
             </button>
-            
+
             <button
               onClick={handleProtect}
               disabled={operationLoading || document.isProtected}
@@ -192,7 +193,7 @@ const DocumentDetail = () => {
             >
               Protect PDF
             </button>
-            
+
             <button
               onClick={handleSplit}
               disabled={operationLoading}

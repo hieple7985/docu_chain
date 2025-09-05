@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+
 import { API_ENDPOINTS } from '../../config/api';
 import axios from 'axios';
 
@@ -18,7 +18,7 @@ const DocumentEdit = () => {
   });
   
   const { id } = useParams();
-  const { user } = useAuth();
+
   const navigate = useNavigate();
 
   useEffect(() => {

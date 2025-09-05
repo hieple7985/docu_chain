@@ -19,7 +19,7 @@ const Profile = () => {
     confirmPassword: ''
   });
   
-  const { user: authUser, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
